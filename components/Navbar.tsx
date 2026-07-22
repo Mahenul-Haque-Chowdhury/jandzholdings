@@ -153,7 +153,7 @@ export default function Navbar() {
     { scope: containerRef, dependencies: [ready] },
   );
 
-  // Overlay menu timeline — built once, played/reversed on toggle.
+  // Overlay menu timeline, built once, played/reversed on toggle.
   useGSAP(
     () => {
       const overlay = overlayRef.current;
@@ -287,7 +287,7 @@ export default function Navbar() {
       </div>
     </header>
 
-      {/* Full-screen overlay menu — sibling of the header: the header is
+      {/* Full-screen overlay menu, sibling of the header: the header is
           CSS-transformed, which would trap position:fixed descendants. */}
       <div
         ref={overlayRef}

@@ -140,7 +140,7 @@ export default function HeroCanvasSequence() {
     // The pin adds 300vh of scroll distance only once frames finish loading.
     // Every ScrollTrigger created before that (About, Projects, Beliefs, ...)
     // was measured against a shorter document, so their start/end points are
-    // now wrong — request a refresh once the pin spacer exists. Coalesced
+    // now wrong, request a refresh once the pin spacer exists. Coalesced
     // with Stats3D/Animations' own requests so only one refresh actually
     // runs, after every async layout change has landed.
     requestScrollRefresh();

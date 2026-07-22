@@ -17,7 +17,7 @@ export default function About() {
 
   // Hero's canvas sequence and Stats3D's 3D scene both add scroll distance
   // above this section once their async content loads. A ScrollTrigger
-  // created before that ends up with a stale start position — waiting for
+  // created before that ends up with a stale start position, waiting for
   // layout to settle before creating this section's trigger avoids that.
   useEffect(() => onceLayoutSettled(() => setLayoutSettled(true)), []);
 
@@ -47,7 +47,7 @@ export default function About() {
           },
         });
 
-        // Heading reveals first, image wipes in next, caption + copy last —
+        // Heading reveals first, image wipes in next, caption + copy last,
         // all driven directly by scroll position, not a timed autoplay.
         tl.to(chars, { opacity: 1, stagger: { each: 0.015, from: "start" }, ease: "none" }, 0)
           .to(image, { clipPath: "inset(0% 0% 0% 0%)", ease: "none" }, 0.35)
@@ -86,7 +86,7 @@ export default function About() {
                     }}
                   >
                     {headingLines.map((line, lineIndex) => (
-                      <span key={line} className="inline-block whitespace-nowrap md:whitespace-normal">
+                      <span key={line} className="inline-flex whitespace-nowrap md:whitespace-normal md:inline-block">
                         {line.split("").map((char, charIndex) => (
                           <span
                             key={`${line}-${charIndex}`}
@@ -117,12 +117,12 @@ export default function About() {
                   </div>
                   <div className="about-text-box mt-2" style={{ marginTop: "0.5rem" }}>
                     <p className="about-paragraph b1 text-base leading-7 md:text-inherit md:leading-inherit">
-                      At J&amp;Z Holdings, we believe finding a home is more than a transaction — it is about
+                      At J&amp;Z Holdings, we believe finding a home is more than a transaction, it is about
                       discovering a place where life's most meaningful moments happen.
                     </p>
                     <p className="about-paragraph b1 mt-5 text-base leading-7 md:text-inherit md:leading-inherit">
                       Since 2021, our mission has stayed the same: to build a sustainable and affordable world,
-                      for the people, with satisfaction — connecting families to spaces that resonate with their dreams.
+                      for the people, with satisfaction, connecting families to spaces that resonate with their dreams.
                     </p>
                   </div>
                 </div>

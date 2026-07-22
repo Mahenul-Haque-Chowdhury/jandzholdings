@@ -6,7 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 //
 // A plain ScrollTrigger.refresh() does not reliably fix triggers that were
 // created before a later pin-spacer (e.g. Hero's 300vh canvas sequence)
-// pushed the rest of the page down — the refreshed start value can stay
+// pushed the rest of the page down, the refreshed start value can stay
 // stale even after refresh() runs. Any component whose correct trigger
 // position depends on layout that only exists after these async loads
 // should instead recreate its ScrollTrigger from scratch once

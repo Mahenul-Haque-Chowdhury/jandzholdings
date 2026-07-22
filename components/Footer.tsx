@@ -22,7 +22,7 @@ export default function Footer() {
 
               <p className="max-w-md text-white/60 mt-4 font-sans text-sm md:text-base leading-relaxed">
                 To build a sustainable & affordable world, for the people
-                with satisfaction — through trusted delivery and quality
+                with satisfaction, through trusted delivery and quality
                 development.
               </p>
             </div>

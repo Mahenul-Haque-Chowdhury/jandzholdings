@@ -15,7 +15,7 @@ const questions = [
   },
   {
     q: "What amenities can residents expect?",
-    a: "Depending on the project, residents can access rooftop gardens, gyms, prayer halls, children's play areas, banquet facilities, CCTV surveillance, and dedicated parking — all designed to support everyday comfort."
+    a: "Depending on the project, residents can access rooftop gardens, gyms, prayer halls, children's play areas, banquet facilities, CCTV surveillance, and dedicated parking, all designed to support everyday comfort."
   },
   {
     q: "How is the construction quality and approval ensured?",

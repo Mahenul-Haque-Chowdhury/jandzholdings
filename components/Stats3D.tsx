@@ -326,7 +326,7 @@ export default function Stats3D() {
               material.envMapIntensity = 0.65;
 
               // The sign texture ("ttt" material, "marinahotel" image) is
-              // mirrored in the source model — flip it horizontally so the
+              // mirrored in the source model, flip it horizontally so the
               // text reads correctly instead of re-exporting the asset.
               if (material.name === "ttt" && material.map) {
                 material.map.wrapS = THREE.RepeatWrapping;
@@ -364,7 +364,7 @@ export default function Stats3D() {
 
       // ScrollTrigger's own pin implementation (a spacer element under the
       // hood) handles mobile address-bar resize and momentum-scroll
-      // correctly — the previous approach (manual getBoundingClientRect
+      // correctly. The previous approach (manual getBoundingClientRect
       // reads driving a React-state fixed/absolute class toggle) fought
       // those same browser quirks and was the source of the pin jittering
       // or misaligning on mobile.

@@ -31,7 +31,7 @@ export default function Animations() {
   // above every section here once their async content loads. Entrance
   // triggers created before that (fonts loaded but Hero/Stats3D still
   // pending) can end up with stale start positions that a plain
-  // ScrollTrigger.refresh() does not reliably correct in place — leaving
+  // ScrollTrigger.refresh() does not reliably correct in place, leaving
   // elements permanently at opacity:0 because their trigger fires at the
   // wrong scroll offset. Re-run this hook once layout is confirmed settled
   // so every trigger here is created fresh against final positions.
@@ -41,7 +41,7 @@ export default function Animations() {
     if (!ready || !layoutSettled) return;
 
     // This hook re-runs once layoutSettled flips from false to true. Kill
-    // any triggers this same hook created on its first (pre-settle) run —
+    // any triggers this same hook created on its first (pre-settle) run,
     // matchMedia manages its own cleanup lifecycle separate from useGSAP's
     // automatic scope revert, so without this, stale triggers from the
     // first run would keep firing alongside the freshly created ones.

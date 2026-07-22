@@ -72,7 +72,7 @@ export default function About() {
         <div className="container mx-auto max-w-7xl px-6 md:px-12">
           <div className="wrap about-wrap">
             <div className="about-info grid grid-cols-1 gap-12 md:grid-cols-2 md:items-center md:gap-28">
-              <div className="about-left flex flex-col gap-12">
+              <div className="about-left flex flex-col gap-12 md:-ml-6 lg:-ml-10">
                 <div className="about-text-box mt-10 md:mt-0" style={{ marginTop: "3rem" }}>
                   <h2
                     className="h5-glare mob-h7 mt-0 text-[clamp(2rem,9vw,3rem)] leading-[0.95] md:text-[clamp(1.6rem,2.1vw,2.25rem)]"

@@ -14,20 +14,20 @@ Do a final usability cleanup in Footer.tsx and any remaining sections: touch int
 Validate the full page in page.tsx at 360, 375, 390, 430, 768, and 1024 widths, then rerun npm run lint and npm run build.
 Relevant files
 
-globals.css — global type scale, overflow, viewport sizing, shared classes
-page.tsx — page order and full mobile validation surface
-Navbar.tsx — logo scale, mobile menu, touch behavior
-Hero.tsx — heading layout, transforms, preloader/animation timing
-preloader.ts — animation readiness control point
-About.tsx — fixed margins and mobile stacking
-Beliefs.tsx — off-canvas image and height assumptions
-Animations.tsx — global GSAP behavior on mobile
-Stats3D.tsx — mobile fallback for heavy 3D
-Amenities.tsx — sticky scroll section needing a mobile variant
-Projects.tsx — oversized cards and section height
-CTA.tsx — responsive form layout
-ContactSection.tsx — downstream spacing and form validation
-Footer.tsx — final mobile nav/footer cleanup
+globals.css, global type scale, overflow, viewport sizing, shared classes
+page.tsx, page order and full mobile validation surface
+Navbar.tsx, logo scale, mobile menu, touch behavior
+Hero.tsx, heading layout, transforms, preloader/animation timing
+preloader.ts, animation readiness control point
+About.tsx, fixed margins and mobile stacking
+Beliefs.tsx, off-canvas image and height assumptions
+Animations.tsx, global GSAP behavior on mobile
+Stats3D.tsx, mobile fallback for heavy 3D
+Amenities.tsx, sticky scroll section needing a mobile variant
+Projects.tsx, oversized cards and section height
+CTA.tsx, responsive form layout
+ContactSection.tsx, downstream spacing and form validation
+Footer.tsx, final mobile nav/footer cleanup
 Verification
 
 Test section-by-section at 360, 375, 390, 430, 768, and 1024 widths.

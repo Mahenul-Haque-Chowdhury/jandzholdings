@@ -77,7 +77,7 @@ export default function Projects() {
 
         // First slide entrance (one-shot, before the pin engages). This hook
         // re-runs after layoutSettled flips (see comment below), which tears
-        // down and recreates this ScrollTrigger — if the page has already
+        // down and recreates this ScrollTrigger. If the page has already
         // scrolled past "top 70%" by that second run, a fresh trigger is
         // created in an already-passed state and never fires, leaving the
         // text stuck at opacity 0. Checking the trigger's start position
@@ -163,7 +163,7 @@ export default function Projects() {
             );
           }
           if (img) {
-            // Scale never animates down to exactly 1 — object-cover needs a
+            // Scale never animates down to exactly 1, object-cover needs a
             // small surplus at every point of the scrub, not just at the
             // resting frame, otherwise a mid-transition scroll position can
             // under-cover the container and reveal its background along an
@@ -188,7 +188,7 @@ export default function Projects() {
         tl.to({}, { duration: 0.35 });
       });
 
-      // Reduced motion: no pin, no wipes — plain stacked side-by-side blocks.
+      // Reduced motion: no pin, no wipes, plain stacked side-by-side blocks.
       mm.add("(prefers-reduced-motion: reduce)", () => {
         gsap.set(stage, { height: "auto", clearProps: "transform" });
         slides.forEach((slide) => {
@@ -202,7 +202,7 @@ export default function Projects() {
       });
 
       // gsap.matchMedia() manages its own cleanup lifecycle, separate from
-      // useGSAP's scope-based revert — without this, re-running the hook
+      // useGSAP's scope-based revert. Without this, re-running the hook
       // (e.g. when layoutSettled flips) leaves the previous mm's triggers
       // alive alongside the newly created ones instead of replacing them.
       return () => mm.revert();

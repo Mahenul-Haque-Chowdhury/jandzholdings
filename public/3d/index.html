@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cinematic Building Scroll</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      height: 100%;
+      background: #090a0d;
+      color: #f5f2ea;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 520vh;
+      margin: 0;
+      overflow-x: hidden;
+      background: #dde8f5;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(30, 46, 64, 0.18), transparent 30%, transparent 72%, rgba(30, 46, 64, 0.16)),
+        radial-gradient(circle at center, transparent 50%, rgba(69, 96, 122, 0.16) 100%);
+    }
+
+    .hud {
+      position: fixed;
+      left: clamp(20px, 4vw, 56px);
+      bottom: clamp(20px, 5vw, 56px);
+      z-index: 3;
+      width: min(420px, calc(100vw - 40px));
+      color: rgba(25, 31, 38, 0.92);
+      text-shadow: 0 2px 22px rgba(255, 255, 255, 0.54);
+      transition: opacity 160ms ease;
+    }
+
+    .hud h1 {
+      margin: 0 0 12px;
+      font-size: clamp(34px, 7vw, 78px);
+      line-height: 0.93;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .hud p {
+      margin: 0;
+      max-width: 34rem;
+      color: rgba(25, 31, 38, 0.68);
+      font-size: clamp(14px, 2vw, 17px);
+      line-height: 1.65;
+    }
+
+    .scroll-track {
+      position: fixed;
+      top: 50%;
+      right: clamp(16px, 3vw, 34px);
+      z-index: 3;
+      width: 2px;
+      height: min(220px, 42vh);
+      transform: translateY(-50%);
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(25, 31, 38, 0.18);
+    }
+
+    .scroll-progress {
+      width: 100%;
+      height: 0%;
+      border-radius: inherit;
+      background: #19232f;
+    }
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #dde8f5;
+      color: rgba(25, 31, 38, 0.72);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: opacity 500ms ease, visibility 500ms ease;
+    }
+
+    .loading.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .window-reveal {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 3;
+      width: min(54vw, 460px);
+      aspect-ratio: 1;
+      object-fit: cover;
+      border: 8px solid rgba(18, 22, 28, 0.88);
+      box-shadow:
+        0 18px 60px rgba(0, 0, 0, 0.38),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.72);
+      transform-origin: center;
+      transition: opacity 120ms linear;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        min-height: 460vh;
+      }
+
+      .hud {
+        bottom: 24px;
+      }
+
+      .hud p {
+        max-width: 18rem;
+      }
+
+      .window-reveal {
+        width: min(76vw, 360px);
+        border-width: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-label="A cinematic 3D building view"></canvas>
+  <div class="vignette"></div>
+  <main class="hud" aria-live="polite">
+    <h1>Model Tour</h1>
+    <p>Scroll to move the camera around the building with a slow cinematic orbit.</p>
+  </main>
+  <div class="scroll-track" aria-hidden="true">
+    <div class="scroll-progress"></div>
+  </div>
+  <img class="window-reveal" src="./window.jpg" alt="">
+  <div class="loading">Loading model</div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/DRACOLoader.js';
+    import { RGBELoader } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/RGBELoader.js';
+    import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/environments/RoomEnvironment.js';
+
+    const canvas = document.querySelector('#scene');
+    const loading = document.querySelector('.loading');
+    const hud = document.querySelector('.hud');
+    const progressBar = document.querySelector('.scroll-progress');
+    const windowReveal = document.querySelector('.window-reveal');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xc9deef);
+    scene.fog = new THREE.FogExp2(0xc9deef, 0.0038);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.78;
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(1200, 32, 32),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(0x3f8edb) },
+          horizonColor: { value: new THREE.Color(0xbdd8ed) },
+          bottomColor: { value: new THREE.Color(0xe5edf3) }
+        },
+        vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 topColor;
+          uniform vec3 horizonColor;
+          uniform vec3 bottomColor;
+          varying vec3 vWorldPosition;
+          void main() {
+            float h = normalize(vWorldPosition).y;
+            float skyMix = smoothstep(0.0, 0.82, max(h, 0.0));
+            vec3 skyColor = mix(horizonColor, topColor, skyMix);
+            gl_FragColor = vec4(mix(bottomColor, skyColor, smoothstep(-0.22, 0.28, h)), 1.0);
+          }
+        `
+      })
+    );
+    sky.frustumCulled = false;
+    scene.add(sky);
+
+    new RGBELoader()
+      .setPath('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/')
+      .load(
+        'kloppenheim_06_puresky_1k.hdr',
+        (hdrTexture) => {
+          hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+          const envMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
+          scene.background = hdrTexture;
+          scene.environment = envMap;
+          sky.visible = false;
+        },
+        undefined,
+        (error) => {
+          sky.visible = true;
+          console.warn('HDRI skybox failed to load, using gradient fallback.', error);
+        }
+      );
+
+    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 5000);
+    scene.add(camera);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambientLight);
+
+    const skyFillLight = new THREE.HemisphereLight(0xcfe8ff, 0x5f6570, 0.34);
+    scene.add(skyFillLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffedcf, 2.25);
+    keyLight.position.set(6, 10, 5);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x9ec9ff, 0.18);
+    fillLight.position.set(-10, 8, -6);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.55);
+    rimLight.position.set(0, 7, -11);
+    scene.add(rimLight);
+
+    const frontLight = new THREE.PointLight(0xfff4df, 0.08, 80);
+    frontLight.position.set(0, 5, 8);
+    scene.add(frontLight);
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const target = new THREE.Vector3();
+    const windowTarget = new THREE.Vector3();
+    const modelSize = new THREE.Vector3(1, 1, 1);
+    let orbitRadius = 10;
+    let verticalLift = 2.6;
+    let closeDistance = 1;
+    let modelReady = false;
+
+    const cameraState = {
+      currentAngle: -0.85,
+      currentHeight: 0,
+      currentRadius: 12,
+      currentLookAt: new THREE.Vector3(),
+      targetLookAt: new THREE.Vector3(),
+      currentFov: 38,
+      targetFov: 38,
+      targetAngle: -0.85,
+      targetHeight: 0,
+      targetRadius: 12
+    };
+
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/libs/draco/');
+
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+
+    function tuneMaterial(material) {
+      if (!material || !material.isMaterial) return;
+
+      const materialName = `${material.name || ''}`.toLowerCase();
+      const color = material.color;
+      const brightness = color ? (color.r + color.g + color.b) / 3 : 0.5;
+      const looksLikeGlass = materialName.includes('glass') ||
+        materialName.includes('window') ||
+        materialName.includes('glazing') ||
+        materialName.includes('pane') ||
+        brightness < 0.24;
+
+      material.envMapIntensity = looksLikeGlass ? 2.8 : 0.78;
+
+      if ('roughness' in material) {
+        material.roughness = looksLikeGlass ? Math.min(material.roughness ?? 0.18, 0.12) : Math.max(material.roughness ?? 0.55, 0.48);
+      }
+      if ('metalness' in material) {
+        material.metalness = looksLikeGlass ? Math.max(material.metalness ?? 0, 0.28) : Math.min(material.metalness ?? 0, 0.08);
+      }
+      if (color && !looksLikeGlass) {
+        color.multiplyScalar(0.82);
+      }
+      if (looksLikeGlass) {
+        material.transparent = true;
+        material.opacity = Math.max(material.opacity ?? 1, 0.82);
+      }
+
+      material.needsUpdate = true;
+    }
+
+    gltfLoader.load(
+      './Untitled.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            const materials = Array.isArray(child.material) ? child.material : [child.material];
+            materials.forEach(tuneMaterial);
+          }
+        });
+
+        modelGroup.add(model);
+        frameModel();
+        modelReady = true;
+        loading.classList.add('is-hidden');
+        updateScrollTargets();
+      },
+      undefined,
+      (error) => {
+        loading.textContent = 'Could not load model.glb';
+        console.error(error);
+      }
+    );
+
+    function frameModel() {
+      const box = new THREE.Box3().setFromObject(modelGroup);
+      const center = box.getCenter(new THREE.Vector3());
+      box.getSize(modelSize);
+
+      modelGroup.position.sub(center);
+      target.set(0, modelSize.y * 0.36, 0);
+
+      const maxAxis = Math.max(modelSize.x, modelSize.y, modelSize.z);
+      orbitRadius = maxAxis * (window.innerWidth < 720 ? 1.9 : 1.55);
+      verticalLift = modelSize.y * 0.42;
+      closeDistance = Math.max(maxAxis * 0.12, 0.75);
+      windowTarget.set(modelSize.x * 0.42, modelSize.y * 0.22, -modelSize.z * 0.08);
+      cameraState.currentRadius = orbitRadius;
+      cameraState.targetRadius = orbitRadius;
+      cameraState.currentHeight = target.y + verticalLift;
+      cameraState.targetHeight = target.y + verticalLift;
+      cameraState.currentLookAt.copy(target);
+      cameraState.targetLookAt.copy(target);
+    }
+
+    function scrollProgress() {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      return maxScroll <= 0 ? 0 : window.scrollY / maxScroll;
+    }
+
+    function updateScrollTargets() {
+      const progress = THREE.MathUtils.clamp(scrollProgress() * 1.1, 0, 1);
+      const travel = THREE.MathUtils.smoothstep(progress, 0, 1);
+      const rise = Math.sin(travel * Math.PI);
+      const startAngle = -0.95;
+      const endAngle = -0.08;
+      const startRadius = orbitRadius * 1.08;
+      const endRadius = modelSize.x * 0.42 + closeDistance;
+      const startHeight = target.y + verticalLift;
+      const endHeight = windowTarget.y + modelSize.y * 0.015;
+
+      cameraState.targetAngle = THREE.MathUtils.lerp(startAngle, endAngle, travel);
+      cameraState.targetRadius = THREE.MathUtils.lerp(startRadius, endRadius, travel);
+      cameraState.targetHeight = THREE.MathUtils.lerp(startHeight, endHeight, travel) + rise * modelSize.y * 0.08;
+      cameraState.targetLookAt.copy(target).lerp(windowTarget, travel);
+      cameraState.targetFov = THREE.MathUtils.lerp(38, 19, travel);
+
+      const reveal = THREE.MathUtils.smoothstep(progress, 0.82, 1);
+      windowReveal.style.opacity = `${reveal}`;
+      windowReveal.style.transform = `translate(-50%, -50%) scale(${THREE.MathUtils.lerp(0.72, 1, reveal)})`;
+
+      hud.style.opacity = `${THREE.MathUtils.clamp(1 - progress * 2.2, 0, 1)}`;
+      progressBar.style.height = `${progress * 100}%`;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      cameraState.currentAngle = THREE.MathUtils.lerp(cameraState.currentAngle, cameraState.targetAngle, 0.055);
+      cameraState.currentRadius = THREE.MathUtils.lerp(cameraState.currentRadius, cameraState.targetRadius, 0.055);
+      cameraState.currentHeight = THREE.MathUtils.lerp(cameraState.currentHeight, cameraState.targetHeight, 0.055);
+      cameraState.currentLookAt.lerp(cameraState.targetLookAt, 0.055);
+      cameraState.currentFov = THREE.MathUtils.lerp(cameraState.currentFov, cameraState.targetFov, 0.055);
+      if (Math.abs(camera.fov - cameraState.currentFov) > 0.01) {
+        camera.fov = cameraState.currentFov;
+        camera.updateProjectionMatrix();
+      }
+
+      if (modelReady) {
+        const angle = cameraState.currentAngle;
+        camera.position.set(
+          Math.cos(angle) * cameraState.currentRadius,
+          cameraState.currentHeight,
+          Math.sin(angle) * cameraState.currentRadius
+        );
+        camera.lookAt(cameraState.currentLookAt);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('scroll', updateScrollTargets, { passive: true });
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      if (modelReady) {
+        frameModel();
+        updateScrollTargets();
+      }
+    });
+
+    animate();
+  </script>
+</body>
+</html>

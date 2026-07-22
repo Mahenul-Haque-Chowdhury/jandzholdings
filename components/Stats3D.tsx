@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { requestScrollRefresh } from "@/lib/scrollRefresh";
+import { requestScrollRefresh, onceLayoutSettled } from "@/lib/scrollRefresh";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import * as THREE from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
+
+gsap.registerPlugin(ScrollTrigger);
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -52,8 +56,6 @@ export default function Stats3D() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [pinPhase, setPinPhase] = useState<"before" | "pinned" | "after">("before");
-  const pinPhaseRef = useRef<"before" | "pinned" | "after">("before");
 
   useEffect(() => {
     if (!sectionRef.current || !canvasRef.current) {
@@ -240,19 +242,8 @@ export default function Stats3D() {
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, dprCap));
       };
 
-      const getLocalProgress = () => {
-        const rect = sectionEl.getBoundingClientRect();
-        const pinOffset = 0;
-        const total = Math.max(sectionEl.offsetHeight - window.innerHeight, 1);
-        const rawProgress = clamp((pinOffset - rect.top) / total, 0, 1);
-
-        return clamp((rawProgress - 0.12) / 0.88, 0, 1);
-      };
-
-      const updateScrollTargets = () => {
-        const rect = sectionEl.getBoundingClientRect();
-        const pinOffset = 0;
-        const progress = getLocalProgress();
+      const updateScrollTargets = (rawProgress: number) => {
+        const progress = clamp((rawProgress - 0.12) / 0.88, 0, 1);
         const travel = THREE.MathUtils.smoothstep(progress, 0, 1);
         const rise = Math.sin(travel * Math.PI);
         const startAngle = -1.35;
@@ -270,19 +261,6 @@ export default function Stats3D() {
         cameraState.targetLookAt.copy(target).lerp(windowTarget, travel);
         cameraState.targetFov = THREE.MathUtils.lerp(38, 38 - (38 - 33) * zoomFactor, travel);
         sectionEl.style.setProperty("--stats-3d-progress", `${progress}`);
-
-        let nextPhase: "before" | "pinned" | "after" = "after";
-
-        if (rect.top > pinOffset) {
-          nextPhase = "before";
-        } else if (rect.bottom > window.innerHeight) {
-          nextPhase = "pinned";
-        }
-
-        if (pinPhaseRef.current !== nextPhase) {
-          pinPhaseRef.current = nextPhase;
-          setPinPhase(nextPhase);
-        }
       };
 
       const render = () => {
@@ -310,12 +288,14 @@ export default function Stats3D() {
         renderer.render(scene, camera);
       };
 
+      let scrollTrigger: ScrollTrigger | null = null;
+
       const handleResize = () => {
         updateSize();
 
         if (modelReady) {
           frameModel();
-          updateScrollTargets();
+          updateScrollTargets(scrollTrigger?.progress ?? 0);
         }
       };
 
@@ -361,7 +341,7 @@ export default function Stats3D() {
           modelGroup.add(model);
           frameModel();
           updateSize();
-          updateScrollTargets();
+          updateScrollTargets(scrollTrigger?.progress ?? 0);
           modelReady = true;
           setStatus("ready");
           requestScrollRefresh();
@@ -375,15 +355,35 @@ export default function Stats3D() {
       );
 
       updateSize();
-      updateScrollTargets();
+      updateScrollTargets(0);
       renderer.setAnimationLoop(render);
 
       const handleVisibilityChange = () => {
         renderer.setAnimationLoop(document.hidden ? null : render);
       };
 
+      // ScrollTrigger's own pin implementation (a spacer element under the
+      // hood) handles mobile address-bar resize and momentum-scroll
+      // correctly — the previous approach (manual getBoundingClientRect
+      // reads driving a React-state fixed/absolute class toggle) fought
+      // those same browser quirks and was the source of the pin jittering
+      // or misaligning on mobile.
+      const createTrigger = () => {
+        scrollTrigger?.kill();
+        scrollTrigger = ScrollTrigger.create({
+          trigger: sectionEl,
+          start: "top top",
+          end: "bottom bottom",
+          pin: canvasEl.parentElement,
+          pinSpacing: false,
+          onUpdate: (self) => updateScrollTargets(self.progress),
+        });
+      };
+
+      createTrigger();
+      const stopWaitingForLayout = onceLayoutSettled(createTrigger);
+
       window.addEventListener("resize", handleResize);
-      window.addEventListener("scroll", updateScrollTargets, { passive: true });
       document.addEventListener("visibilitychange", handleVisibilityChange);
 
       const textureKeys = [
@@ -427,8 +427,9 @@ export default function Stats3D() {
         disposed = true;
         renderer.setAnimationLoop(null);
         window.removeEventListener("resize", handleResize);
-        window.removeEventListener("scroll", updateScrollTargets);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
+        stopWaitingForLayout();
+        scrollTrigger?.kill();
         dracoLoader.dispose();
         hdriTexture?.dispose();
         hdriEnvironment?.dispose();
@@ -501,32 +502,24 @@ export default function Stats3D() {
       ref={sectionRef}
       className="relative h-[140vh] overflow-clip border-y border-white/10 bg-[linear-gradient(180deg,#0b0f12_0%,#161c20_100%)] md:h-[160vh] lg:h-[180vh]"
     >
-      <div
-        className={
-          pinPhase === "pinned"
-            ? "fixed left-0 right-0 top-0 z-0 h-[100svh] overflow-hidden will-change-transform"
-            : pinPhase === "before"
-              ? "absolute inset-x-0 top-0 z-0 h-[100svh] overflow-hidden will-change-transform"
-              : "absolute inset-x-0 bottom-0 z-0 h-[100svh] overflow-hidden will-change-transform"
-        }
-      >
+      <div className="relative z-0 h-svh overflow-hidden will-change-transform">
         <canvas ref={canvasRef} className="h-full w-full" aria-label="A cinematic 3D skyscraper view" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(12,16,20,0.05),rgba(12,16,20,0.4))]" />
 
-        <div className="absolute inset-0 mx-auto flex h-full max-w-7xl flex-col px-6 pb-16 pt-14 md:px-12 lg:px-16">
-          <div className="mb-12 flex items-center gap-4 text-sm uppercase tracking-[0.4em] text-white/60 md:text-base lg:-ml-20 xl:-ml-24 2xl:-ml-28">
-            <span className="h-px w-12 bg-white/20" />
+        <div className="absolute inset-0 mx-auto flex h-full max-w-7xl flex-col px-5 pb-6 pt-8 sm:px-6 sm:pb-10 sm:pt-12 md:px-12 md:pb-16 md:pt-14 lg:px-16">
+          <div className="mb-4 flex items-center gap-3 text-[0.65rem] uppercase tracking-[0.32em] text-white/60 sm:mb-8 sm:gap-4 sm:text-sm md:mb-12 md:text-base lg:-ml-20 xl:-ml-24 2xl:-ml-28">
+            <span className="h-px w-8 bg-white/20 sm:w-12" />
             <span>Performance in numbers</span>
           </div>
 
-          <div className="grid flex-1 grid-cols-1 gap-12 text-white md:pt-16 md:grid-cols-[minmax(0,1fr)_minmax(0,920px)_minmax(0,1fr)] md:gap-x-32 md:gap-y-28 lg:pt-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1040px)_minmax(0,1fr)] lg:gap-x-36 lg:gap-y-32">
+          <div className="grid flex-1 grid-cols-2 content-center gap-x-4 gap-y-5 text-white sm:grid-cols-1 sm:content-start sm:gap-8 md:pt-16 md:grid-cols-[minmax(0,1fr)_minmax(0,920px)_minmax(0,1fr)] md:gap-x-32 md:gap-y-28 lg:pt-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1040px)_minmax(0,1fr)] lg:gap-x-36 lg:gap-y-32">
             {stats.map((item) => (
               <div
                 key={item.value}
                 className={`max-w-xs ${
                   item.side === "left"
-                    ? "md:col-start-1 md:justify-self-start md:text-left md:-ml-6 lg:-ml-10"
-                    : "md:col-start-3 md:justify-self-end md:text-right"
+                    ? "text-left md:col-start-1 md:justify-self-start md:-ml-6 lg:-ml-10"
+                    : "text-left sm:text-left md:col-start-3 md:justify-self-end md:text-right"
                 }`}
                 style={{
                   opacity: "calc(var(--stats-3d-progress, 0) * 1)",
@@ -534,17 +527,17 @@ export default function Stats3D() {
                   transition: "opacity 0.4s ease, transform 0.4s ease",
                 }}
               >
-                <div className="text-[clamp(3rem,7vw,6rem)] font-light leading-[0.9] tracking-[-0.04em] drop-shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+                <div className="text-[clamp(1.9rem,8vw,6rem)] font-light leading-[0.9] tracking-[-0.04em] drop-shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
                   {item.value}
                 </div>
-                <p className="mt-5 text-sm uppercase tracking-[0.16em] text-white/70 md:text-[13px]">
+                <p className="mt-2 text-[0.65rem] uppercase leading-snug tracking-[0.1em] text-white/70 sm:mt-5 sm:text-sm sm:tracking-[0.16em] md:text-[13px]">
                   {item.label}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 flex items-end justify-between text-xs uppercase tracking-[0.3em] text-white/55">
+          <div className="mt-4 hidden items-end justify-between text-xs uppercase tracking-[0.3em] text-white/55 sm:flex sm:mt-8 md:mt-12">
             <span>{status === "error" ? "3D scene unavailable" : status === "ready" ? "" : "Loading 3D scene"}</span>
           </div>
         </div>

@@ -304,27 +304,27 @@ export default function Navbar() {
               {menu.map((item, index) => (
                 <li key={item.label}>
                   <div className="overflow-hidden">
-                    <div className="menu-row-inner flex flex-col gap-1 py-3 md:flex-row md:items-baseline md:justify-between md:py-[1.4vh]">
+                    <div className="menu-row-inner flex flex-col gap-1 py-2.5 md:flex-row md:items-baseline md:justify-between md:gap-6 md:py-[1.4vh]">
                       <a
                         href={item.href}
                         onClick={() => setIsMenuOpen(false)}
-                        className="group inline-flex items-baseline gap-4 text-white md:gap-6"
+                        className="group inline-flex items-baseline gap-3 text-white md:gap-6"
                       >
-                        <span className="text-[0.65rem] tracking-[0.3em] text-white/40">
+                        <span className="text-[0.6rem] tracking-[0.3em] text-white/40 md:text-[0.65rem]">
                           {String(index + 1).padStart(2, "0")}
                         </span>
-                        <span className="font-serif text-[clamp(1.6rem,5.2vh,2.9rem)] leading-none tracking-[-0.02em] transition-transform duration-300 ease-out group-hover:translate-x-3">
+                        <span className="font-serif text-[clamp(1.35rem,7vw,2.9rem)] leading-none tracking-[-0.02em] transition-transform duration-300 ease-out md:text-[clamp(1.6rem,5.2vh,2.9rem)] md:group-hover:translate-x-3">
                           {item.label}
                         </span>
                       </a>
                       {item.children.length > 0 ? (
-                        <div className="flex flex-wrap gap-x-5 gap-y-1 pl-9 md:justify-end md:pl-0">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 pl-8 md:justify-end md:gap-x-5 md:pl-0">
                           {item.children.map((child) => (
                             <a
                               key={child}
                               href="#"
                               onClick={() => setIsMenuOpen(false)}
-                              className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50 transition-colors duration-300 hover:text-white"
+                              className="text-[0.62rem] uppercase tracking-[0.2em] text-white/50 transition-colors duration-300 hover:text-white md:text-[0.68rem] md:tracking-[0.24em]"
                             >
                               {child}
                             </a>
@@ -338,8 +338,8 @@ export default function Navbar() {
             </ul>
           </nav>
 
-          <div className="flex flex-col gap-6 pt-8 md:flex-row md:items-end md:justify-between">
-            <div className="menu-meta text-[0.7rem] uppercase tracking-[0.24em] text-white/50">
+          <div className="flex flex-col gap-4 pt-6 md:flex-row md:items-end md:justify-between md:gap-6 md:pt-8">
+            <div className="menu-meta text-[0.62rem] uppercase leading-relaxed tracking-[0.2em] text-white/50 md:text-[0.7rem] md:tracking-[0.24em]">
               House 15, Road 15, Sector 4, Uttara, Dhaka-1230
               <br />
               info@jandzholdings.com
@@ -347,7 +347,7 @@ export default function Navbar() {
             <a
               href="#book-a-visit"
               onClick={() => setIsMenuOpen(false)}
-              className="menu-meta inline-flex items-center gap-3 rounded-full border border-white/30 px-7 py-3.5 text-[10px] font-semibold uppercase tracking-[0.26em] text-white transition-colors duration-300 hover:bg-white hover:text-black"
+              className="menu-meta inline-flex items-center justify-center gap-3 rounded-full border border-white/30 px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.26em] text-white transition-colors duration-300 hover:bg-white hover:text-black md:justify-start md:px-7 md:py-3.5"
             >
               Book a visit
               <span className="text-sm">→</span>
